@@ -41,6 +41,7 @@ Set these values in `.env.local` when you have real OAuth apps:
 ```txt
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=replace-with-a-long-random-secret
+# AUTH_SECRET can be used instead of NEXTAUTH_SECRET.
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -68,6 +69,7 @@ For Vercel production, add these environment variables in the Vercel project set
 ```txt
 NEXTAUTH_URL=https://service-five-mu.vercel.app
 NEXTAUTH_SECRET=replace-with-a-long-random-secret
+# AUTH_SECRET can be used instead of NEXTAUTH_SECRET.
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 NAVER_CLIENT_ID=your-naver-client-id

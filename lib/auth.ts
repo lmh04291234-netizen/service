@@ -10,6 +10,10 @@ function hasValue(value?: string) {
 
 const googleConfigured = hasValue(process.env.GOOGLE_CLIENT_ID) && hasValue(process.env.GOOGLE_CLIENT_SECRET);
 const naverConfigured = hasValue(process.env.NAVER_CLIENT_ID) && hasValue(process.env.NAVER_CLIENT_SECRET);
+const authSecret =
+  process.env.NEXTAUTH_SECRET ||
+  process.env.AUTH_SECRET ||
+  "billyeobom-prototype-auth-secret-change-this-before-real-users";
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
@@ -68,7 +72,7 @@ if (naverConfigured) {
 }
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: authSecret,
   session: {
     strategy: "jwt"
   },
