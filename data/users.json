@@ -1,0 +1,10 @@
+[
+  {
+    "id": "demo-user",
+    "name": "데모 사용자",
+    "email": "demo@matjam.kr",
+    "passwordHash": "$2a$10$YL8gwLwZRnFdCjsdvlBkI.U9E81UuaPUQnwsRhHcrKYcaRHUIB.aS",
+    "provider": "credentials",
+    "createdAt": "2026-06-15T00:00:00.000Z"
+  }
+]
