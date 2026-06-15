@@ -601,7 +601,11 @@ export default function Home() {
 
   function handleSocialSignIn(provider: "google" | "naver") {
     const isConfigured = providerStatus[provider];
-    signIn(isConfigured ? provider : `${provider}-demo`, { redirect: false });
+    if (isConfigured) {
+      signIn(provider, { callbackUrl: "/" });
+      return;
+    }
+    signIn(`${provider}-demo`, { redirect: false });
   }
 
   function openAuth(mode: "login" | "signup") {
