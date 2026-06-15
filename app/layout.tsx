@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "맞잠 | 의자와 베개 대여 마켓",
-  description: "며칠 써봐야 아는 생활용품을 동네에서 빌려보고 빌려주는 마켓"
+  title: "빌려봄 | 구매 전 체험 대여 마켓",
+  description: "고민되는 구매 전 대여하고 필요한 날 물건을 빌리는 개인·업체 대여 마켓"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

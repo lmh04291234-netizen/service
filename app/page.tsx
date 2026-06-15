@@ -623,10 +623,10 @@ export default function Home() {
     <div className="market-shell">
       <header className="site-header">
         <button className="brand brand-button" type="button" onClick={() => setActiveView("home")}>
-          <div className="brand-mark">맞</div>
+          <div className="brand-mark">봄</div>
           <div>
-            <strong>맞잠</strong>
-            <span>rental market</span>
+            <strong>빌려봄</strong>
+            <span>try before rent</span>
           </div>
         </button>
 
@@ -706,12 +706,12 @@ export default function Home() {
       <main className="market-main">
         {activeView === "home" ? (
           <>
-        <section className="hero-band" aria-label="맞춤 생활용품 대여">
+        <section className="hero-band" aria-label="구매 전 체험과 필요한 날 대여">
           <img src="/assets/comfort-rental-banner.png" alt="의자와 베개가 놓인 깨끗한 방" />
           <div className="hero-copy">
-            <div className="eyebrow"><ShieldCheck size={16} /> 개인+업체 안심 대여</div>
-            <h1>필요한 날만 빌리는 장비 렌탈 마켓.</h1>
-            <p>공구, 행사용품, 전자기기, 캠핑장비를 동네 개인과 인증 업체에게 필요한 기간만 빌리세요.</p>
+            <div className="eyebrow"><ShieldCheck size={16} /> 개인과 업체가 함께하는 안심 대여</div>
+            <h1>고민되는 구매 전 대여,<br />필요한 날 빌리는 물건.</h1>
+            <p>의자와 베개처럼 써봐야 아는 물건부터 공구, 행사 용품, 전자기기, 캠핑 장비까지 필요한 기간만 빌려보세요.</p>
             <div className="hero-proof">
               <span>업체 인증</span>
               <span>개인 인증</span>
