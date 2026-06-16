@@ -29,7 +29,7 @@ type ListingType = "offer" | "request";
 type Category = "tools" | "event" | "electronics" | "camping" | "machine" | "office";
 type Method = "pickup" | "delivery" | "both";
 type SellerType = "business" | "personal";
-type ActiveView = "home" | "login" | "signup" | "mypage" | "settings" | "post" | "detail";
+type ActiveView = "home" | "login" | "signup" | "mypage" | "settings" | "post" | "detail" | "messages";
 
 type Region = {
   province: string;
@@ -58,6 +58,22 @@ type Listing = {
   rating: number;
   verified: boolean;
   created: number;
+};
+
+type ChatMessage = {
+  id: number;
+  sender: "me" | "them";
+  body: string;
+  sentAt: string;
+};
+
+type Conversation = {
+  id: string;
+  listingId: number;
+  participant: string;
+  participantType: SellerType;
+  messages: ChatMessage[];
+  unread: number;
 };
 
 const initialListings: Listing[] = [
@@ -273,6 +289,57 @@ const initialListings: Listing[] = [
   }
 ];
 
+const initialConversations: Conversation[] = [
+  {
+    id: "listing-7",
+    listingId: 7,
+    participant: "판교 셰어",
+    participantType: "personal",
+    unread: 1,
+    messages: [
+      {
+        id: 1,
+        sender: "them",
+        body: "안녕하세요. 스틸케이스 리프 체험 대여는 이번 주 평일 저녁 픽업 가능합니다.",
+        sentAt: "어제 오후 7:18"
+      },
+      {
+        id: 2,
+        sender: "me",
+        body: "토요일 오전에 하루만 대여해볼 수 있을까요?",
+        sentAt: "어제 오후 7:22"
+      },
+      {
+        id: 3,
+        sender: "them",
+        body: "가능합니다. 보증금 입금 후 정확한 픽업 위치를 안내드릴게요.",
+        sentAt: "오늘 오전 9:04"
+      }
+    ]
+  },
+  {
+    id: "listing-2",
+    listingId: 2,
+    participant: "합정 공구함",
+    participantType: "personal",
+    unread: 0,
+    messages: [
+      {
+        id: 1,
+        sender: "me",
+        body: "드릴 세트에 콘크리트 비트도 포함되어 있나요?",
+        sentAt: "월요일 오후 2:11"
+      },
+      {
+        id: 2,
+        sender: "them",
+        body: "네, 기본 비트와 콘크리트 비트 모두 포함입니다. 사용법도 간단히 알려드릴 수 있어요.",
+        sentAt: "월요일 오후 2:18"
+      }
+    ]
+  }
+];
+
 const categoryNames: Record<Category, string> = {
   tools: "공구",
   event: "행사용품",
@@ -381,8 +448,9 @@ function compactMoney(value: number) {
 
 export default function Home() {
   const { data: session } = useSession();
-  const contactDialogRef = useRef<HTMLDialogElement | null>(null);
   const [listings, setListings] = useState(initialListings);
+  const [conversations, setConversations] = useState(initialConversations);
+  const [selectedConversationId, setSelectedConversationId] = useState(initialConversations[0]?.id || "");
   const [mode, setMode] = useState<"all" | ListingType>("all");
   const [category, setCategory] = useState<"all" | Category>("all");
   const [method, setMethod] = useState<"all" | Method>("all");
@@ -416,6 +484,11 @@ export default function Home() {
   const postCityOptions = Object.keys(regionTree[postRegion.province] || {});
   const postDistrictOptions = Object.keys(regionTree[postRegion.province]?.[postRegion.city] || {});
   const postDongOptions = regionTree[postRegion.province]?.[postRegion.city]?.[postRegion.district] || [];
+  const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId) || conversations[0] || null;
+  const selectedConversationListing = selectedConversation
+    ? listings.find((item) => item.id === selectedConversation.listingId) || null
+    : null;
+  const unreadMessages = conversations.reduce((total, conversation) => total + conversation.unread, 0);
   const historyReadyRef = useRef(false);
   const applyingHistoryRef = useRef(false);
 
@@ -589,8 +662,31 @@ export default function Home() {
 
   function handleContact(item: Listing) {
     if (!requireAuth("연락하려면 먼저 로그인해야 합니다.")) return;
-    setSelectedListing(item);
-    contactDialogRef.current?.showModal();
+    const conversationId = `listing-${item.id}`;
+    setConversations((current) => {
+      if (current.some((conversation) => conversation.id === conversationId)) return current;
+      return [
+        {
+          id: conversationId,
+          listingId: item.id,
+          participant: item.owner,
+          participantType: item.sellerType,
+          unread: 0,
+          messages: [
+            {
+              id: Date.now(),
+              sender: "me",
+              body: `안녕하세요. "${item.title}" 글 보고 연락드립니다. 가능한 일정이 있을까요?`,
+              sentAt: "방금"
+            }
+          ]
+        },
+        ...current
+      ];
+    });
+    setSelectedConversationId(conversationId);
+    setActiveView("messages");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openListingDetail(item: Listing) {
@@ -621,6 +717,52 @@ export default function Home() {
       return;
     }
     setActiveView(view);
+  }
+
+  function openMessages(conversationId?: string) {
+    if (!requireAuth("대화 내역은 로그인 후 이용할 수 있습니다.")) return;
+    if (conversationId) {
+      setSelectedConversationId(conversationId);
+    } else if (!selectedConversationId && conversations[0]) {
+      setSelectedConversationId(conversations[0].id);
+    }
+    setActiveView("messages");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleSelectConversation(conversationId: string) {
+    setSelectedConversationId(conversationId);
+    setConversations((current) => current.map((conversation) => (
+      conversation.id === conversationId ? { ...conversation, unread: 0 } : conversation
+    )));
+  }
+
+  function handleSendChatMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedConversation) return;
+
+    const form = new FormData(event.currentTarget);
+    const body = String(form.get("message") || "").trim();
+    if (!body) return;
+
+    setConversations((current) => current.map((conversation) => {
+      if (conversation.id !== selectedConversation.id) return conversation;
+      return {
+        ...conversation,
+        unread: 0,
+        messages: [
+          ...conversation.messages,
+          {
+            id: Date.now(),
+            sender: "me",
+            body,
+            sentAt: "방금"
+          }
+        ]
+      };
+    }));
+
+    event.currentTarget.reset();
   }
 
   return (
@@ -658,6 +800,13 @@ export default function Home() {
               <button
                 className="ghost-button icon-text"
                 type="button"
+                onClick={() => openMessages()}
+              >
+                <MessageCircle size={16} /> 대화{unreadMessages ? ` ${unreadMessages}` : ""}
+              </button>
+              <button
+                className="ghost-button icon-text"
+                type="button"
                 onClick={() => openPrivateView("settings")}
               >
                 <Settings size={16} /> 설정
@@ -683,6 +832,13 @@ export default function Home() {
                 onClick={() => openPrivateView("mypage")}
               >
                 <UserCog size={16} /> 마이페이지
+              </button>
+              <button
+                className="ghost-button icon-text"
+                type="button"
+                onClick={() => openMessages()}
+              >
+                <MessageCircle size={16} /> 대화
               </button>
               <button
                 className="ghost-button icon-text"
@@ -1081,6 +1237,94 @@ export default function Home() {
               </section>
             </div>
           </section>
+        ) : activeView === "messages" ? (
+          <section className="messages-page" aria-label="대화">
+            <div className="account-hero">
+              <div>
+                <div className="eyebrow dark"><MessageCircle size={16} /> 대화</div>
+                <h1>대여 문의와 거래 대화를 한 곳에서 확인하세요.</h1>
+                <p>물건별로 대화방이 만들어지고, 대여 일정·보증금·픽업 위치를 대화로 조율할 수 있습니다.</p>
+              </div>
+              <button className="ghost-button icon-text" type="button" onClick={() => setActiveView("home")}>
+                <Search size={16} /> 장비 보러가기
+              </button>
+            </div>
+
+            <div className="messages-layout">
+              <aside className="conversation-list" aria-label="대화 목록">
+                <div className="panel-header">
+                  <h2>대화 목록</h2>
+                  <p>{conversations.length}개의 대화가 있습니다.</p>
+                </div>
+                {conversations.length ? conversations.map((conversation) => {
+                  const item = listings.find((entry) => entry.id === conversation.listingId);
+                  const lastMessage = conversation.messages[conversation.messages.length - 1];
+                  return (
+                    <button
+                      key={conversation.id}
+                      className={selectedConversation?.id === conversation.id ? "conversation-item active" : "conversation-item"}
+                      type="button"
+                      onClick={() => handleSelectConversation(conversation.id)}
+                    >
+                      <div className="conversation-avatar">{conversation.participant.slice(0, 1)}</div>
+                      <div>
+                        <strong>{conversation.participant}</strong>
+                        <span>{item?.title || "대여 문의"}</span>
+                        <p>{lastMessage?.body || "아직 메시지가 없습니다."}</p>
+                      </div>
+                      {conversation.unread > 0 && <em>{conversation.unread}</em>}
+                    </button>
+                  );
+                }) : (
+                  <div className="empty show">아직 대화가 없습니다. 관심 있는 상품에서 대여 문의를 시작해보세요.</div>
+                )}
+              </aside>
+
+              <section className="chat-panel" aria-label="대화 내용">
+                {selectedConversation ? (
+                  <>
+                    <div className="chat-head">
+                      <div className="conversation-avatar large">{selectedConversation.participant.slice(0, 1)}</div>
+                      <div>
+                        <strong>{selectedConversation.participant}</strong>
+                        <span>
+                          {selectedConversationListing?.title || "대여 문의"} · {selectedConversation.participantType === "business" ? "업체" : "개인"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedConversationListing && (
+                      <button className="chat-listing-card" type="button" onClick={() => openListingDetail(selectedConversationListing)}>
+                        <img src={selectedConversationListing.image} alt={selectedConversationListing.title} />
+                        <div>
+                          <strong>{selectedConversationListing.title}</strong>
+                          <span>{selectedConversationListing.location} · {money(selectedConversationListing.price)} / 일</span>
+                        </div>
+                      </button>
+                    )}
+
+                    <div className="message-thread">
+                      {selectedConversation.messages.map((message) => (
+                        <div key={message.id} className={message.sender === "me" ? "message-bubble mine" : "message-bubble"}>
+                          <p>{message.body}</p>
+                          <span>{message.sentAt}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <form className="chat-compose" onSubmit={handleSendChatMessage}>
+                      <input name="message" autoComplete="off" placeholder="메시지를 입력하세요" />
+                      <button className="primary-button icon-text" type="submit">
+                        <MessageCircle size={16} /> 보내기
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <div className="empty show">왼쪽에서 대화방을 선택하세요.</div>
+                )}
+              </section>
+            </div>
+          </section>
         ) : activeView === "post" ? (
           <section className="post-page" aria-label="대여 글 등록">
             <div className="account-hero">
@@ -1238,8 +1482,8 @@ export default function Home() {
                 <span>내 등록 글</span>
               </div>
               <div className="account-card">
-                <strong>0</strong>
-                <span>진행 중 거래</span>
+                <strong>{conversations.length}</strong>
+                <span>대화 중</span>
               </div>
               <div className="account-card">
                 <strong>인증 대기</strong>
@@ -1322,25 +1566,6 @@ export default function Home() {
         )}
       </main>
 
-      <dialog ref={contactDialogRef}>
-        <div className="modal-body">
-          <h2>{selectedListing?.title || "연락하기"}</h2>
-          <p>
-            {selectedListing
-              ? `${selectedListing.location} · ${money(selectedListing.price)} / 일 · 보증금 ${money(selectedListing.deposit)}`
-              : ""}
-          </p>
-          <label>보낼 메시지
-            <textarea defaultValue={selectedListing ? `안녕하세요. "${selectedListing.title}" 글 보고 연락드립니다. 가능한 일정이 있을까요?` : ""} />
-          </label>
-        </div>
-        <div className="modal-actions">
-          <button className="ghost-button" type="button" onClick={() => contactDialogRef.current?.close()}>닫기</button>
-          <button className="primary-button icon-text" type="button" onClick={() => contactDialogRef.current?.close()}>
-            <MessageCircle size={16} /> 메시지 보내기
-          </button>
-        </div>
-      </dialog>
     </div>
   );
 }
